@@ -8,7 +8,7 @@ Sungho Lee (sunghol), Ethan Oh (minwooo)
 
 ## Summary
 
-The current implementation of parallel fuzzing in AFL is only limited to synchronizing the seeds over multiple independent instances of AFL. Some number of papers exist on improving the parallelization of AFL; we are going to implement one such improvement, based on [this paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8668503).
+The current implementation of parallel fuzzing in AFL is only limited to synchronizing the seeds over multiple independent instances of AFL. Some number of papers exist on improving the parallelization of AFL; we are going to implement one such improvement, based on [this paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8668503). The aim of the project is to achieve similar if not better performance described in the paper.
 
 ## Background
 
@@ -48,7 +48,16 @@ AFL has a parallel mode that makes it possible to run multiple instances of AFL 
 
 ## The Challenge
 
-The main challenge of this project is to devise a way to balance the workload when synchronization happens. This is particularly difficult here because given an unknown binary, there is no way to know in advance how long a particular seed might take to complete running through the program, nor do we know the entire state space of the program. We also need to consider the method of synchronization - blindly using a mutex will cause performance loss as the number of core increases. Furthermore, even after reallocating the seeds that cover different parts of the program state, a seed may drive the program into different subspace that is covered by another processor.
+The main challenges of the project are: \
+Given only an unknown binary file,
+1. There is no deterministic way of knowing the runtime of a program instance given inputs generated from a particular seed
+2. There is no way to construct a tree of the program space
+3. Synchronization across multiple processors is a pain given the seed prioritization scheme that aims to explore subspaces not previously explored by other processors
+
+To tackle the challenges above: 
+1. Improve resilience using the current state information and timeout parameters
+2. Provide a estimate of the size of the program space from the reference afl implementation
+3. Allocate local and global memory to decrease lock contention
 
 ## Resources
 
