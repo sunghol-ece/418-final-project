@@ -46,15 +46,14 @@ AFL has a parallel mode that makes it possible to run multiple instances of AFL 
 
 ## The Challenge
 
-The main challenges of the project are: \\
-
-Given only an unknown binary file, \\
+The main challenges of the project are: \
+Given only an unknown binary file, \
 
 1. There is no deterministic way of knowing the runtime of a program instance given inputs generated from a particular seed
 2. There is no way to construct a tree of the program space
 3. Synchronization across multiple processors is a pain given the seed prioritization scheme that aims to explore subspaces not previously explored by other processors
 
-To tackle the challenges above: \\
+To tackle the challenges above: \
 1. Improve resilience using the current state information and timeout parameters
 2. Provide a estimate of the size of the program space from the reference afl implementation
 3. Allocate local and global memory to decrease lock contention
