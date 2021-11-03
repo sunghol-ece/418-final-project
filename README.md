@@ -1,54 +1,105 @@
+# Implementing Parallel AFL
+
+A 15-418 project by Sungho Lee (sunghol) and Ethan Oh (minwooo)
+
+[Proposal Link](PROPOSAL.md)
+
 ## Summary
+
+The current implementation of parallel fuzzing in AFL is only limited to synchronizing the seeds over multiple independent instances of AFL. Some number of papers exist on improving the parallelization of AFL; we are going to implement one such improvement, based on [this paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8668503).
 
 ## Background
 
+Fuzzing is a testing method where a randomly mutated program input is generated as test cases to find abnormal behaviors, i.e. program crashes. A purely randomized input is necessarily inefficient, as most programs require an input of a specific structure and have checks for them; as such, various fuzzing techniques exist. One such technique is coverage-based fuzz testing, which collects coverage information and uses it to guide seed selection and mutation.
+
+American Fuzzy Lop (AFL) is a coverage-based fuzzer; it captures basic block transitions and their hitcounts into a bitmap with a lightweight, compile-time instrumentation. Then, it uses a genetic algorithm to mutate the seeds; a test cases that triggers new paths in the program is marked as interesting and is used as a seed for further expolration; other less interesting seeds are discarded to reduce unnecessary testing.
+
+Algorithm of AFL's fuzzing code is shown below, taken from the same paper above:
+
+> __Input__: Initial seeds _Seeds_, Target program _P_  
+> __Result__: Malicious Inputs  
+> __for__ _seeds_ ∈ _Seeds_ __do__  
+>> __for__ _iterations_ ← _0_ ___to___ _limit_ __do__  
+>>> _input_ ← _seed_  
+>>> _length_ ← len(_seed_)  
+>>> _mutations ← RandInt(_length_)  
+>>> __for__ _mut_ ← _0_ ___to___ _mutations_ __do__  
+>>>> _byte_ ← RandInt(_length_)  
+>>>> mutate(_input_, _byte_)  
+>>>
+>>> __end__  
+>>> _result_, _cov_ ← Execute(_P_, _input_)  
+>>> __if__ _result is crash_ __then__  
+>>>> Append _input_ to _MaliciousInputs_
+>>>
+>>> __end__  
+>>> __if__ _HasInputGain_(_cov_) __then__
+>>>> Append _input_ to _Seeds_
+>>>
+>>> __end__  
+>>
+>> __end__  
+>
+> __end__
+
+AFL has a parallel mode that makes it possible to run multiple instances of AFL on a multi-core system. Throughout the test, the instances will run independently, synchronizing any interesting seeds that were discovered and coverage information at certain intervals. Such mode of parallelization, however, does not deal with task splitting and reallocation, causing multiple instances to go over the same subspace and therefore is inefficient.
+
 ## The Challenge
+
+The main challenge of this project is to devise a way to balance the workload when synchronization happens. This is particularly difficult here because given an unknown binary, there is no way to know in advance how long a particular seed might take to complete running through the program, nor do we know the entire state space of the program. We also need to consider the method of synchronization - blindly using a mutex will cause performance loss as the number of core increases. Furthermore, even after reallocating the seeds that cover different parts of the program state, a seed may drive the program into different subspace that is covered by another processor.
 
 ## Resources
 
+We will use [AFL++](https://github.com/AFLplusplus/AFLplusplus) as the baseline code for the parallel fuzzer. Our project is based on the paper ["Program State Sensitive Parallel Fuzzing for Real World Software"  (J. Ye _et al._)](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8668503); the paper provides a high-level algorithm and methodology of tackling the aforementioned challenges, and the performance targets that we would like to reach through our implementation. It does not provide code or implementation. We will initially use our own machines, and given enough time, test on other machines as well (such as GHC machines or PSC machines).
+
 ## Goals and Deliverables
+
+Our primary goal of this project is to have a succesful implementation of PAFL described by the paper; by successful, we mean that we would like to have a working implementation that achieves a similar, if not better, performance improvements compared to the current method of running multiple AFL instances in parallel.
+
+If there is enough time after a successful implementation, we hope to be able to compare the performances on different machines with different number of cores. Furthermore, we will explore further areas to improve on this implementation of parallel fuzzing.
+
+If the progress is slower than expected, we hope to at least implement the first part of the two challenging aspects of improving performance of parallel fuzzing, provided in the paper - balancing workload by properly reallocating states to processors.
+
+Because a fuzzing campaign of a program can take from a day to even months (especially if it is a complicated enough program to be utilizing multi-core system), we will not have an interactive demo; instead, we will produce a speedup graph compared to the baseline AFL implementation and the speedup that the paper argues to have. If we get to testing on different machines, we will compare the performances between different machines and number of cores as well.
 
 ## Platform Choice
 
+Since we are using AFL++ as our baseline code, we will build upon it by using C and C++. The computer we will use initially throughout implementing PAFL is our own machines, which is enough to ensure correctness and test for performance improvements. Once a correct implementation is reached, we will further test on GHC machines and PSC machines.
+
 ## Schedule
 
+### Week 1 (November 1 - November 7)
 
+- Work on shaping out the overall project, and write the proposal
+- Read and understand the paper we will be using, as well as other papers on fuzzing
+- Read through the documentation and code of AFL++ to understand their implementation of program states
 
+### Week 2 (November 8 - November 14)
 
-## Welcome to GitHub Pages
+- Read more through the documentation and code of AFL++
+- Start working on implementing PAFL
 
-You can use the [editor on GitHub](https://github.com/sunghol-ece/418-final-project/edit/main/README.md) to maintain and preview the content for your website in Markdown files.
+### Week 3 (November 15 - November 21)
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+- Continue working on PAFL
+- Write Milestone Report; due on November 22, 9 am
 
-### Markdown
+### Week 4 (November 22 - November 28)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+- Continue working on PAFL, have at least the workload balancing part complete
 
-```markdown
-Syntax highlighted code block
+### Week 5 (November 29 - December 5)
 
-# Header 1
-## Header 2
-### Header 3
+- Finish up implementation
+- Start testing for performance
 
-- Bulleted
-- List
+### Week 6 (December 6 - December 9)
 
-1. Numbered
-2. List
+- Finish up testing for performance
+- Write Final Project Report; due on December 9, 11:59 pm
+- Prepare for Project Poster Session
 
-**Bold** and _Italic_ and `Code` text
+### Project Poster Session (December 10)
 
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/sunghol-ece/418-final-project/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+- Look at other people's projects
+- Have fun
