@@ -1,7 +1,3 @@
-# Implementing Parallel AFL
-
-A 15-418 project by Sungho Lee (sunghol) and Ethan Oh (minwooo)
-
 [Proposal Link](PROPOSAL.md)
 
 ## Summary
