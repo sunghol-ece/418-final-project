@@ -78,23 +78,23 @@ Since we are using AFL++ as our baseline code, we will build upon it by using C 
 
 ### Week 1 (November 1 - November 7)
 
-- Work on shaping out the overall project, and write the proposal
-- Read and understand the paper we will be using, as well as other papers on fuzzing
-- Read through the documentation and code of AFL++ to understand their implementation of program states
+- ~~Work on shaping out the overall project, and write the proposal~~
+- ~~Read and understand the paper we will be using, as well as other papers on fuzzing~~
+- ~~Read through the documentation and code of AFL++ to understand their implementation of program states~~
 
 ### Week 2 (November 8 - November 14)
 
-- Read more through the documentation and code of AFL++
-- Start working on implementing PAFL
+- ~~Read more through the documentation and code of AFL++~~
+- ~~Try compiling and running AFL in vanilla parallel mode~~
 
 ### Week 3 (November 15 - November 21)
 
+- ~~Start working on implementing PAFL~~
+- ~~Write Milestone Report; due on November 22, 9 am~~
+
+### Week 4 (November 22 - November 28) <= we are here
+
 - Continue working on PAFL
-- Write Milestone Report; due on November 22, 9 am
-
-### Week 4 (November 22 - November 28)
-
-- Continue working on PAFL, have at least the workload balancing part complete
 
 ### Week 5 (November 29 - December 5)
 
@@ -111,3 +111,4 @@ Since we are using AFL++ as our baseline code, we will build upon it by using C 
 
 - Look at other people's projects
 - Have fun
+
