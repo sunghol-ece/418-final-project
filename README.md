@@ -92,18 +92,18 @@ Since we are using AFL++ as our baseline code, we will build upon it by using C 
 - ~~Start working on implementing PAFL~~
 - ~~Write Milestone Report; due on November 22, 9 am~~
 
-### Week 4 (November 22 - November 28) <= we are here
+### Week 4 (November 22 - November 28)
 
-- Continue working on PAFL
+- ~~Change directionality of project; read more papers on parallelization and performance evaluation~~
+- ~~Work on actually making AFL run~~
 
 ### Week 5 (November 29 - December 5)
 
-- Finish up implementation
-- Start testing for performance
+- ~~Start performance measurement~~
 
-### Week 6 (December 6 - December 9)
+### Week 6 (December 6 - December 9) <= we are here
 
-- Finish up testing for performance
+- Finish up measuring performance
 - Write Final Project Report; due on December 9, 11:59 pm
 - Prepare for Project Poster Session
 
