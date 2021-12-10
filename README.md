@@ -7,7 +7,7 @@
 
 ## Summary
 
-The current implementation of parallel fuzzing in AFL is only limited to synchronizing the seeds over multiple independent instances of AFL. Some number of papers exist on improving the parallelization of AFL; we are going to implement one such improvement, based on [this paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8668503). The aim of the project is to achieve similar if not better performance described in the paper.
+Fuzzing is an automated software testing technique that involves providing different types of inputs to a given program and monitoring the behavior of the program. The most prevalently used repository for fuzzing is AFL++, a fork of the original AFL (American Fuzzy Lop) developed by Michał Zalewski. In fuzzing, there are two main factors that determine how effective the fuzzing session is, namely the number of program paths exposed in a given timeframe and the number of unique bugs exposed. In order to leverage parallelism to perform better in both directions, several research groups from around the world have devised different methods of parallel fuzzing. In this project, we explore the effectiveness of the seed-sharing version of AFL++, with regard to 1/2/4/6 threads and conclude that parallelism improves both metrics and also leads to more stable sessions. We also talk briefly about the other types of implementations that are of interest.
 
 ## Background
 
@@ -15,7 +15,7 @@ Fuzzing is a testing method where a randomly mutated program input is generated 
 
 American Fuzzy Lop (AFL) is a coverage-based fuzzer; it captures basic block transitions and their hitcounts into a bitmap with a lightweight, compile-time instrumentation. Then, it uses a genetic algorithm to mutate the seeds; a test cases that triggers new paths in the program is marked as interesting and is used as a seed for further expolration; other less interesting seeds are discarded to reduce unnecessary testing.
 
-Algorithm of AFL's fuzzing code is shown below, taken from the same paper above:
+Algorithm of AFL's fuzzing code is shown below:
 
 > __Input__: Initial seeds _Seeds_, Target program _P_  
 > __Result__: Malicious Inputs  
@@ -43,38 +43,68 @@ Algorithm of AFL's fuzzing code is shown below, taken from the same paper above:
 >
 > __end__
 
-AFL has a parallel mode that makes it possible to run multiple instances of AFL on a multi-core system. Throughout the test, the instances will run independently, synchronizing any interesting seeds that were discovered and coverage information at certain intervals. Such mode of parallelization, however, does not deal with task splitting and reallocation, causing multiple instances to go over the same subspace and therefore is inefficient.
+AFL has a parallel mode that makes it possible to run multiple instances of AFL on a multi-core system. Throughout the test, the instances will run independently, synchronizing any interesting seeds that were discovered and coverage information at certain intervals. More specifically, there is a main instance and several secondary instances running independently; the secondary instances periodically synchronize their own bitmaps and input queues with the main node, while the main node scans all secondary instances to update its data structure.
 
-## The Challenge
+## Testing Method
 
-The main challenges of the project are: \
-Given only an unknown binary file,
-1. There is no deterministic way of knowing the runtime of a program instance given inputs generated from a particular seed
-2. There is no way to construct a tree of the program space
-3. Synchronization across multiple processors is a pain given the seed prioritization scheme that aims to explore subspaces not previously explored by other processors
+**Hardware & Software Specifications:**
 
-To tackle the challenges above: 
-1. Improve resilience using the current state information and timeout parameters
-2. Provide a estimate of the size of the program space from the reference afl implementation
-3. Allocate local and global memory to decrease lock contention
+Ryzen 3600x CPU - 6 cores, 12 threads
+
+VMware running on Windows 10 settings:
+- Ubuntu 20.04.03 LTS
+- 4GB RAM
+- CPU 6 cores, 2 threads each (gave all cores to the VM)
+
+**Test Parameters:**
+
+- Test Program : Readelf, compiler environment variable “CC=afl-gcc ./configure”, binutils-2.25
+- User Input      : /bin/ps
+- Structure        : One main, Multiple secondary
+
+**Test Method:**
+
+Threads tested - 1, 2, 4, 6 threads. For each thread count, we tested 4 instances that reached 8 hours and averaged the statistics.
+
+The following statistics were compiled:
+
+- Paths found at 2 hour increments
+- Maximum Gap between Number of Paths Found
+- Bugs (crashes, hangs, etc.) found
+
+## Goals
+
+Our original goal of the project was to have a succesful implementation of PAFL described by [this paper](https://ieeexplore.ieee.org/document/8668503); however, it turned out to be that the AFL++ codebase was too difficult to modify as someone who had not been working with it previously, and would likely require more time and expertise to be able to implement PAFL. We also did not want to totally start from scratch and looked for ways to continue with AFL's parallelism within the remaining time; therefore, we decided to benchmark the current AFL++'s parallel mode, which leverages seed-sharing within a sync directory. The original proposal is linked [here](PROPOSAL.md).
+
+Because a fuzzing campaign of a program can take from a day to even months (especially if it is a complicated enough program to be utilizing multi-core system), we will not have an interactive demo; instead, we will produce a graph comparing the various metrics of a fuzzing campaign, namely the paths discovered, the variance in the paths discovered, and the number of unique hangs found. If we get to testing on different machines, we will compare the performances between different machines and number of cores as well.
 
 ## Resources
 
-We will use [AFL++](https://github.com/AFLplusplus/AFLplusplus) as the baseline code for the parallel fuzzer. Our project is based on the paper ["Program State Sensitive Parallel Fuzzing for Real World Software"  (J. Ye _et al._)](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8668503); the paper provides a high-level algorithm and methodology of tackling the aforementioned challenges, and the performance targets that we would like to reach through our implementation. It does not provide code or implementation. We will initially use our own machines, and given enough time, test on other machines as well (such as GHC machines or PSC machines).
+**Source Code & General Knowledge:**
 
-## Goals and Deliverables
+[Fuzzing basics](https://www.evilsocket.net/2015/04/30/Fuzzing-with-AFL-Fuzz-a-Practical-Example-AFL-vs-binutils/)
 
-Our primary goal of this project is to have a succesful implementation of PAFL described by the paper; by successful, we mean that we would like to have a working implementation that achieves a similar, if not better, performance improvements compared to the current method of running multiple AFL instances in parallel.
+[AFL](https://github.com/google/AFL)
 
-If there is enough time after a successful implementation, we hope to be able to compare the performances on different machines with different number of cores. Furthermore, we will explore further areas to improve on this implementation of parallel fuzzing.
+[AFL++](https://github.com/AFLplusplus/AFLplusplus)
 
-If the progress is slower than expected, we hope to at least implement the first part of the two challenging aspects of improving performance of parallel fuzzing, provided in the paper - balancing workload by properly reallocating states to processors.
+**Other Implementations**
 
-Because a fuzzing campaign of a program can take from a day to even months (especially if it is a complicated enough program to be utilizing multi-core system), we will not have an interactive demo; instead, we will produce a speedup graph compared to the baseline AFL implementation and the speedup that the paper argues to have. If we get to testing on different machines, we will compare the performances between different machines and number of cores as well.
+[Scaling AFL to a 256 thread machine](https://gamozolabs.github.io/fuzzing/2018/09/16/scaling_afl.html)
 
-## Platform Choice
+[Program State Sensitive Parallel Fuzzing for Real World Software](https://ieeexplore.ieee.org/document/8668503)
 
-Since we are using AFL++ as our baseline code, we will build upon it by using C and C++. The computer we will use initially throughout implementing PAFL is our own machines, which is enough to ensure correctness and test for performance improvements. Once a correct implementation is reached, we will further test on GHC machines and PSC machines.
+[EnFuzz: Ensemble Fuzzing with Seed Synchronization among Diverse Fuzzers](https://www.semanticscholar.org/paper/EnFuzz%3A-Ensemble-Fuzzing-with-Seed-Synchronization-Chen-Jiang/8754951ba8bbb42ff10e100fa853a5ce86af5ab1)
+
+[Facilitating Parallel Fuzzing with Mutually-exclusive Task Distribution”](https://arxiv.org/pdf/2109.08635.pdf)
+
+[UniFuzz: Optimizing Distributed Fuzzing via Dynamic Centralized Task Scheduling](https://arxiv.org/pdf/2009.06124.pdf)
+
+**On Fuzzing**
+
+[Fuzzing: On the Exponential Cost of Vulnerability Discovery](https://doi.org/10.1145/3368089.3409729)
+
+[UNIFUZZ: A Holistic and Pragmatic Metrics-Driven Platform for Evaluating Fuzzers](https://arxiv.org/abs/2010.01785)
 
 ## Schedule
 
@@ -103,14 +133,8 @@ Since we are using AFL++ as our baseline code, we will build upon it by using C 
 
 - ~~Start performance measurement~~
 
-### Week 6 (December 6 - December 9) <= we are here
+### Week 6 (December 6 - December 9)
 
-- Finish up measuring performance
-- Write Final Project Report; due on December 9, 11:59 pm
-- Prepare for Project Poster Session
-
-### Project Poster Session (December 10)
-
-- Look at other people's projects
-- Have fun
-
+- ~~Finish up measuring performance~~
+- ~~Write Final Project Report; due on December 9, 11:59 pm~~
+- ~~Prepare for Project Poster Session~~
